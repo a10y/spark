@@ -255,6 +255,21 @@ class SparkSubmitSuite
     sysProps("spark.ui.enabled") should be ("false")
   }
 
+  test("handles --driver-jre option without YARN") {
+    testPrematureExit(Array("--driver-jre", "--master", "local[1]", "--class", "Fake", "fake.jar"),
+      "Cannot ship driver JRE except when running on YARN")
+  }
+
+  test("handles --driver-jre option when using YARN") {
+    val clArgs = Seq(
+      "--driver-jre",
+      "--master", "yarn",
+      "--class", "Fake",
+      "fake.jar")
+    val appArgs = new SparkSubmitArguments(clArgs)
+    appArgs.driverJre should be (true)
+  }
+
   test("handles standalone cluster mode") {
     testStandaloneCluster(useRest = true)
   }
@@ -291,8 +306,9 @@ class SparkSubmitSuite
       mainClass should be ("org.apache.spark.deploy.Client")
     }
     classpath should have size 0
-    sysProps should have size 9
+    sysProps should have size 10
     sysProps.keys should contain ("SPARK_SUBMIT")
+    sysProps.keys should contain ("java.home")
     sysProps.keys should contain ("spark.master")
     sysProps.keys should contain ("spark.app.name")
     sysProps.keys should contain ("spark.jars")
