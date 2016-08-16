@@ -225,6 +225,17 @@
   </properties>
   <repositories>
     <repository>
+      <id>snapshot</id>
+      <name>apache snapshots</name>
+      <url>https://repository.apache.org/content/groups/snapshots/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    <repository>
       <id>local</id>
       <name>mavenLocal</name>
       <url>file:///Users/aduffy/.m2/repository</url>
@@ -2533,7 +2544,7 @@
     <profile>
       <id>hadoop-3.0</id>
       <properties>
-        <hadoop.version>3.0.0-alpha2-20160815.165916-146</hadoop.version>
+        <hadoop.version>3.0.0-alpha2-SNAPSHOT</hadoop.version>
         <jets3t.version>0.9.3</jets3t.version>
         <zookeeper.version>3.4.6</zookeeper.version>
         <curator.version>2.6.0</curator.version>
