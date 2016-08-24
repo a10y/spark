@@ -149,9 +149,11 @@ private[parquet] class ParquetWriteSupport extends WriteSupport[InternalRow] wit
           recordConsumer.addDouble(row.getDouble(ordinal))
 
       case StringType =>
+        // Change here: StringType is now going to be written out using "fromString", which has a
+        // correct implementation of compareTo.
         (row: SpecializedGetters, ordinal: Int) =>
           recordConsumer.addBinary(
-            Binary.fromReusedByteArray(row.getUTF8String(ordinal).getBytes))
+            Binary.fromString(row.getUTF8String(ordinal).toString))
 
       case TimestampType =>
         (row: SpecializedGetters, ordinal: Int) => {
