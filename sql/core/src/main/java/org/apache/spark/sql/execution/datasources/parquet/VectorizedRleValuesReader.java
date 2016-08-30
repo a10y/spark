@@ -17,6 +17,9 @@
 
 package org.apache.spark.sql.execution.datasources.parquet;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
 import org.apache.parquet.Preconditions;
 import org.apache.parquet.bytes.BytesUtils;
 import org.apache.parquet.column.values.ValuesReader;
@@ -73,6 +76,11 @@ public final class VectorizedRleValuesReader extends ValuesReader
 
   public VectorizedRleValuesReader() {
     fixedWidth = false;
+  }
+
+  @Override
+  public void initFromPage(int valueCount, ByteBuffer byteBuffer, int offset) throws IOException {
+    initFromPage(valueCount, byteBuffer.array(), offset);
   }
 
   public VectorizedRleValuesReader(int bitWidth) {

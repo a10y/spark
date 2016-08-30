@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import avro.shaded.com.google.common.collect.ImmutableList;
+import org.apache.parquet.filter2.compat.RowGroupFilter;
 import scala.Option;
 
 import static org.apache.parquet.filter2.compat.RowGroupFilter.filterRowGroups;
@@ -105,12 +107,17 @@ public abstract class SpecificParquetRecordReaderBase<T> extends RecordReader<Vo
     if (rowGroupOffsets == null) {
       // then we need to apply the predicate push down filter
       footer = readFooter(configuration, file, range(split.getStart(), split.getEnd()));
-      MessageType fileSchema = footer.getFileMetaData().getSchema();
       FilterCompat.Filter filter = getFilter(configuration);
-      blocks = filterRowGroups(filter, footer.getBlocks(), fileSchema);
+      reader = ParquetFileReader.open(configuration, file, footer);
+      blocks = filterRowGroups(
+          ImmutableList.of(RowGroupFilter.FilterLevel.STATISTICS, RowGroupFilter.FilterLevel.DICTIONARY),
+          filter,
+          footer.getBlocks(),
+          reader);
     } else {
       // otherwise we find the row groups that were selected on the client
       footer = readFooter(configuration, file, NO_FILTER);
+      reader = ParquetFileReader.open(configuration, file, footer);
       Set<Long> offsets = new HashSet<>();
       for (long offset : rowGroupOffsets) {
         offsets.add(offset);
@@ -146,8 +153,6 @@ public abstract class SpecificParquetRecordReaderBase<T> extends RecordReader<Vo
     String sparkRequestedSchemaString =
         configuration.get(ParquetReadSupport$.MODULE$.SPARK_ROW_REQUESTED_SCHEMA());
     this.sparkSchema = StructType$.MODULE$.fromString(sparkRequestedSchemaString);
-    this.reader = new ParquetFileReader(
-        configuration, footer.getFileMetaData(), file, blocks, requestedSchema.getColumns());
     for (BlockMetaData block : blocks) {
       this.totalRowCount += block.getRowCount();
     }
@@ -157,7 +162,7 @@ public abstract class SpecificParquetRecordReaderBase<T> extends RecordReader<Vo
     // to the accumulator. So we can check if the row groups are filtered or not in test case.
     TaskContext taskContext = TaskContext$.MODULE$.get();
     if (taskContext != null) {
-      Option<AccumulatorV2<?, ?>> accu = (Option<AccumulatorV2<?, ?>>) taskContext.taskMetrics()
+      Option<AccumulatorV2<?, ?>> accu = taskContext.taskMetrics()
         .lookForAccumulatorByName("numRowGroups");
       if (accu.isDefined()) {
         ((LongAccumulator)accu.get()).add((long)blocks.size());
